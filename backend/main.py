@@ -11,6 +11,10 @@ from routes.worklists_routes import router as patients_results_router
 from routes.batch_order_routes import router as batch_order_router
 from routes.log_routes import router as log_router
 from routes.manual_entry_routes import router as manual_entry_router
+from routes.settings_routes import router as settings_router
+from routes.dashboard_routes import router as dashboard_router
+from routes.sample_routes import router as sample_router
+from routes.qc_routes import router as qc_router
 
 app = FastAPI(title="Atellica LIS API", version="1.0.0")
 
@@ -38,6 +42,10 @@ app.include_router(patients_results_router, prefix="/api/worklists", tags=["Work
 app.include_router(batch_order_router, prefix="/api/batch", tags=["Batch Orders"])
 app.include_router(log_router, prefix="/api/logs", tags=["Logs"])
 app.include_router(manual_entry_router, prefix="/api/manual", tags=["Manual Entry"])
+app.include_router(settings_router, prefix="/api/settings", tags=["Settings"])
+app.include_router(dashboard_router, prefix="/api/dashboard", tags=["Dashboard"])
+app.include_router(sample_router, prefix="/api/samples", tags=["Samples List"])
+app.include_router(qc_router, prefix="/api/qc", tags=["Quality Control"])
 
 @app.get("/")
 def home():

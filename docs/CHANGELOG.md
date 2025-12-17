@@ -11,3 +11,4 @@
 ### Changed
 - Rebranded from "ProLIMS" to "EWC LIS".
 - Updated folder structure to separate Middleware and Backend API.
+- chnage option for manual regristration and barcode generation

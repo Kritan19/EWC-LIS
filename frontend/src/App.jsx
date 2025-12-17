@@ -6,11 +6,17 @@ import {
 import CIcon from '@coreui/icons-react';
 import { 
   cilSpeedometer, cilBeaker, cilSettings, cilMenu, 
-  cilAccountLogout, cilUserPlus 
+  cilAccountLogout, cilUserPlus, cilGraph, cilList 
 } from '@coreui/icons';
+
+// --- IMPORT REAL PAGES ---
+import Login from './Login';
+import Dashboard from './Dashboard';
 import ValidationScreen from './ValidationScreen';
 import PatientRegistration from './PatientRegistration';
-import Login from './Login';
+import Settings from './Settings';
+import SamplesList from './SamplesList';
+import QCView from './QCView';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -42,6 +48,7 @@ export default function App() {
           <strong>EWC LIS</strong>
         </CSidebarBrand>
         <CSidebarNav>
+          {/* A. DASHBOARD */}
           <CNavItem 
             href="#" 
             onClick={() => setCurrentView('dashboard')} 
@@ -50,6 +57,34 @@ export default function App() {
             <CIcon icon={cilSpeedometer} className="nav-icon" /> Dashboard
           </CNavItem>
           
+          {/* B. SAMPLES (NOW WORKING) */}
+          <CNavItem 
+            href="#" 
+            onClick={() => setCurrentView('samples')} 
+            className={currentView === 'samples' ? 'active' : ''}
+          >
+            <CIcon icon={cilList} className="nav-icon" /> Samples
+          </CNavItem>
+
+          {/* C. VALIDATION */}
+          <CNavItem 
+            href="#" 
+            onClick={() => setCurrentView('validation')} 
+            className={currentView === 'validation' ? 'active' : ''}
+          >
+            <CIcon icon={cilBeaker} className="nav-icon" /> Validation
+          </CNavItem>
+
+          {/* E. QC */}
+          <CNavItem 
+            href="#" 
+            onClick={() => setCurrentView('qc')} 
+            className={currentView === 'qc' ? 'active' : ''}
+          >
+            <CIcon icon={cilGraph} className="nav-icon" /> QC
+          </CNavItem>
+
+          {/* F. REGISTRATION */}
           <CNavItem 
             href="#" 
             onClick={() => setCurrentView('registration')} 
@@ -57,14 +92,17 @@ export default function App() {
           >
             <CIcon icon={cilUserPlus} className="nav-icon" /> Registration
           </CNavItem>
-
-          <CNavItem href="#">
-            <CIcon icon={cilBeaker} className="nav-icon" /> Validation Queue
-          </CNavItem>
           
-          <CNavItem href="#">
-            <CIcon icon={cilSettings} className="nav-icon" /> Settings
-          </CNavItem>
+          {/* D. SETTINGS (Only for Admin) */}
+          {currentUser?.role === 'Admin' || currentUser?.role === 'Pathologist' ? (
+             <CNavItem 
+               href="#" 
+               onClick={() => setCurrentView('settings')} 
+               className={currentView === 'settings' ? 'active' : ''}
+             >
+               <CIcon icon={cilSettings} className="nav-icon" /> Settings
+             </CNavItem>
+          ) : null}
           
           <CNavItem href="#" onClick={handleLogout} className="mt-auto text-danger">
             <CIcon icon={cilAccountLogout} className="nav-icon" /> Logout
@@ -73,7 +111,7 @@ export default function App() {
           {/* Attribution */}
           <div className="mt-2 pb-3 text-center">
             <small className="text-secondary" style={{ fontSize: '0.65rem', opacity: 0.5 }}>
-                v1.0.0 | EWC LIS
+                v1.1.0 | Dev: Kritan Nepal
             </small>
           </div>
         </CSidebarNav>
@@ -105,8 +143,12 @@ export default function App() {
 
         {/* DYNAMIC CONTENT AREA */}
         <CContainer fluid className="px-4 pb-4 h-100">
-           {currentView === 'dashboard' && <ValidationScreen />}
+           {currentView === 'dashboard' && <Dashboard />}
+           {currentView === 'samples' && <SamplesList />}
+           {currentView === 'validation' && <ValidationScreen />}
+           {currentView === 'qc' && <QCView />}
            {currentView === 'registration' && <PatientRegistration />}
+           {currentView === 'settings' && <Settings />}
         </CContainer>
       </div>
     </div>

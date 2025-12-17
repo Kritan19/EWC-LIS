@@ -1,12 +1,9 @@
 const API_URL = 'http://localhost:8000/api';
 
 export const api = {
-  // 1. LOGIN
+  // --- AUTHENTICATION ---
   login: async (username, password) => {
-    // FIX 1: URL changed to /users/login
-    // FIX 2: Backend expects "email", but we are passing the username input.
-    // If you type "admin", it sends "email": "admin".
-    // NOTE: You might need to log in with "admin@hospital.com" if the backend enforces email format.
+    // Mapping username to email field as required by backend schema
     const response = await fetch(`${API_URL}/users/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -17,59 +14,140 @@ export const api = {
     });
     
     if (!response.ok) {
-      // Helper to read the exact error from Python if available
       const errData = await response.json().catch(() => ({}));
       throw new Error(errData.detail || 'Invalid credentials');
     }
     
-    // The new backend returns { access_token: "..." }, not { user: ... }
-    // We need to decode the token or fetch user details separately, 
-    // but for now let's just return a success object to satisfy the frontend.
-    const data = await response.json();
+    // Returning static Admin profile as requested
     return { 
         success: true, 
-        user: { name: "Dr. Sarah", role: "Pathologist" } // Mocking user details for now as token doesn't carry names
+        user: { 
+            name: "System Admin", 
+            role: "Admin" 
+        } 
     }; 
   },
 
-  // 2. GET LIST OF PENDING PATIENTS
+  // --- DASHBOARD & VALIDATION ---
   getPendingSamples: async () => {
-    const response = await fetch(`${API_URL}/orders`); // Assuming orders route is here
+    const response = await fetch(`${API_URL}/samples`);
     if (!response.ok) throw new Error('Failed to fetch samples');
     return response.json();
   },
 
-  // 3. GET RESULTS (Placeholder - adjusted for new backend structure if needed)
   getResults: async (barcode) => {
-    // Note: Your new backend structure uses different routes.
-    // We will fix these later once Login works.
     const response = await fetch(`${API_URL}/results/${barcode}`);
     if (!response.ok) throw new Error('Failed to fetch results');
     return response.json();
   },
 
-  // 4. APPROVE RESULTS
   approveSample: async (barcode) => {
     const response = await fetch(`${API_URL}/approve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ barcode })
     });
-    if (!response.ok) throw new Error('Failed to approve');
+    if (!response.ok) throw new Error('Failed to approve result');
     return response.json();
   },
 
-  // 5. CREATE MANUAL ORDER
+  // --- MANUAL ORDER ENTRY ---
   createOrder: async (orderData) => {
     const response = await fetch(`${API_URL}/manual/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(orderData)
     });
+    
     if (!response.ok) {
         const err = await response.json();
         throw new Error(err.detail || 'Failed to create order');
     }
     return response.json();
-  }
+  },
+
+  // --- ADMIN SETTINGS ---
+  getTests: async () => {
+    const response = await fetch(`${API_URL}/settings/tests`);
+    if (!response.ok) throw new Error('Failed to fetch test definitions');
+    return response.json();
+  },
+
+  addTest: async (testData) => {
+    const response = await fetch(`${API_URL}/settings/tests`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(testData)
+    });
+    if (!response.ok) throw new Error('Failed to add test');
+    return response.json();
+  },
+
+  getMachines: async () => {
+    const response = await fetch(`${API_URL}/settings/machines`);
+    if (!response.ok) throw new Error('Failed to fetch machines');
+    return response.json();
+  },
+
+  addMachine: async (machineData) => {
+    const response = await fetch(`${API_URL}/settings/machines`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(machineData)
+    });
+    if (!response.ok) throw new Error('Failed to add machine');
+    return response.json();
+  },
+
+  // --- DASHBOARD ---
+  getStats: async () => {
+    const response = await fetch(`${API_URL}/dashboard/stats`);
+    if (!response.ok) throw new Error('Failed to load stats');
+    return response.json();
+  },
+
+  // --- SAMPLES LIST ---
+  getAllSamples: async (search = '', status = '') => {
+    // Build query string like ?search=john&status=PENDING
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (status && status !== 'All') params.append('status', status);
+    
+    const response = await fetch(`${API_URL}/samples/all?${params.toString()}`);
+    if (!response.ok) throw new Error('Failed to fetch samples');
+    return response.json();
+  },
+
+  // --- QC MODULE ---
+  getQCDefinitions: async () => {
+    const response = await fetch(`${API_URL}/qc/definitions`);
+    if (!response.ok) throw new Error('Failed to load QC definitions');
+    return response.json();
+  },
+
+  addQCDefinition: async (data) => {
+    const response = await fetch(`${API_URL}/qc/definitions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to create QC definition');
+    return response.json();
+  },
+
+  getQCData: async (qcId) => {
+    const response = await fetch(`${API_URL}/qc/results/${qcId}`);
+    if (!response.ok) throw new Error('Failed to load chart data');
+    return response.json();
+  },
+
+  addQCResult: async (data) => {
+    const response = await fetch(`${API_URL}/qc/results`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to save QC result');
+    return response.json();
+  },
 };
