@@ -11,98 +11,84 @@ HOST = settings.LIS_HOST
 PORT = settings.LIS_PORT
 
 def start_listener():
-    # Run cleanup tasks at startup
     cleanup_old_raw_files()
     cleanup_old_logs()
+
+    print(f"--- STARTING DEBUG LISTENER ON {HOST}:{PORT} ---")
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             s.bind((HOST, PORT))
             s.listen(5)
-            log.info(f"ASTM Middleware Listening on {HOST}:{PORT}")
-            log_event("STARTUP", f"Listener started on {HOST}:{PORT}")
+            print("✅ WAITING FOR CONNECTION...")
         except Exception as e:
-            log.error(f"Failed to bind port: {e}")
+            print(f"❌ PORT ERROR: {e}")
             return
 
         while True:
             try:
                 conn, addr = s.accept()
                 with conn:
-                    log.info(f"Machine Connected: {addr}")
-                    log_event("CONNECT", f"Connection from {addr}")
-                    
-                    patient_buffers = {} # Buffer for split frames
+                    print(f"\n🔌 CONNECTED: {addr}")
+                    patient_buffers = {} 
 
                     while True:
+                        # 1. Receive Data
                         data = conn.recv(4096)
                         if not data:
-                            log.info(f"Machine {addr} disconnected")
+                            print("🔌 DISCONNECTED (No Data)")
                             break
+                        
+                        # --- DEBUG PRINT: SHOW EXACTLY WHAT WE GOT ---
+                        print(f"RAW RECEIVED ({len(data)} bytes): {data}")
+                        # ---------------------------------------------
 
-                        # 1. Handle Handshake
-                        if data == ENQ:
+                        # 2. Handle Handshake (ENQ)
+                        # We use 'in' instead of '==' to be safer against buffering
+                        if ENQ in data:
+                            print("   -> Found ENQ (Handshake). Sending ACK...")
                             conn.sendall(ACK)
-                            log.debug("Received ENQ -> Sent ACK")
                             continue
 
-                        # 2. Handle End of Transmission
-                        if data == EOT:
-                            log.info("Received EOT (End of Transmission)")
-                            break
+                        # 3. Handle End of Transmission (EOT)
+                        if EOT in data:
+                            print("   -> Found EOT (End). Transmission Complete.")
+                            # We don't break here, in case machines start a new transmission immediately
+                            continue
 
-                        # 3. Handle Data Frames
+                        # 4. Handle Data Frames (STX ... ETX)
                         if STX in data:
-                            # Split multiple frames if stuck together
+                            print("   -> Found STX (Start of Text). Processing Frame...")
                             segments = data.split(STX)
                             for seg in segments:
                                 if not seg: continue
                                 
-                                # Check if frame is complete (has ETX)
                                 if ETX in seg:
-                                    # Extract content up to ETX
                                     frame_content, _ = seg.split(ETX, 1)
                                     
-                                    # Handle partial buffers
                                     if "partial" in patient_buffers:
                                         frame_content = patient_buffers["partial"] + frame_content
                                         patient_buffers["partial"] = b""
 
-                                    # Save Raw Data
                                     raw_text = frame_content.decode(errors='ignore')
-                                    save_raw_file(raw_text)
+                                    print(f"   📜 DECODED TEXT: {raw_text[:50]}...") # Show first 50 chars
 
-                                    # Parse Data
                                     try:
                                         patient, order, results = parse_frame(frame_content)
-                                        log.info(f"Parsed: {len(results)} results for {patient.get('patient_name', 'Unknown')}")
-                                        
-                                        # Insert into Database
+                                        print(f"   ✅ SAVING: {patient.get('patient_name')} ({len(results)} results)")
                                         save_to_db(patient, order, results)
+                                        conn.sendall(ACK)
+                                        print("   -> Sent ACK for Frame")
                                     except Exception as e:
-                                        log.error(f"Parsing Error: {e}")
-                                        log_event("PARSE_ERROR", str(e))
-
-                                    # Acknowledge Receipt
-                                    conn.sendall(ACK)
+                                        print(f"   ❌ PARSING ERROR: {e}")
+                                        conn.sendall(ACK) # Ack anyway to keep connection alive
                                 else:
-                                    # Store partial frame
+                                    print("   -> Partial frame received, buffering...")
                                     patient_buffers["partial"] = seg
 
             except Exception as e:
-                log.error(f"Connection Error: {e}")
-                log_event("ERROR", str(e))
-
-def save_raw_file(text):
-    """Saves raw instrument data to a text file for debugging"""
-    date_str = datetime.now().strftime("%Y-%m-%d")
-    filename = os.path.join(RAW_FOLDER, f"data_{date_str}.txt")
-    try:
-        with open(filename, "a", encoding="utf-8") as f:
-            f.write(f"[{datetime.now().strftime('%H:%M:%S')}]\n{text}\n\n")
-    except Exception as e:
-        log.error(f"Could not save raw file: {e}")
+                print(f"❌ CONNECTION ERROR: {e}")
 
 if __name__ == "__main__":
     start_listener()

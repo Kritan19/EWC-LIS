@@ -111,7 +111,7 @@ export default function App() {
           {/* Attribution */}
           <div className="mt-2 pb-3 text-center">
             <small className="text-secondary" style={{ fontSize: '0.65rem', opacity: 0.5 }}>
-                v1.1.0 | Dev: Kritan Nepal
+                v1.1.0 | EWC LIS
             </small>
           </div>
         </CSidebarNav>

@@ -8,7 +8,7 @@ ETX = b'\x03'
 CR  = b'\x0D'
 
 HOST = '127.0.0.1'
-PORT = 8002
+PORT = 5001
 
 astm_message = (
     # NMC SAMPLE

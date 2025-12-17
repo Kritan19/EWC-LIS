@@ -12,3 +12,8 @@
 - Rebranded from "ProLIMS" to "EWC LIS".
 - Updated folder structure to separate Middleware and Backend API.
 - chnage option for manual regristration and barcode generation
+
+# To run the Program 
+ - backend : python -m uvicorn main:app --reload --port 8000
+ - frontend: npm run dev 
+ - database :  Locak instances pswd:root
