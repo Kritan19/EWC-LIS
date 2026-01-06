@@ -121,8 +121,56 @@ export default function Settings() {
 
       {/* RE-ADD YOUR TEST/MACHINE MODALS HERE (I'm skipping them for brevity, keep your existing ones) */}
       <CModal visible={showTestModal} onClose={() => setShowTestModal(false)}><CModalHeader>Add Test</CModalHeader><CModalBody><CForm><CFormInput label="Test Code" onChange={e => setTestForm({...testForm, test_code: e.target.value})}/></CForm></CModalBody><CModalFooter><CButton onClick={handleAddTest} color="primary">Save</CButton></CModalFooter></CModal>
-      <CModal visible={showMachineModal} onClose={() => setShowMachineModal(false)}><CModalHeader>Add Machine</CModalHeader><CModalBody><CForm><CFormInput label="Name" onChange={e => setMachineForm({...machineForm, machine_name: e.target.value})}/></CForm></CModalBody><CModalFooter><CButton onClick={handleAddMachine} color="primary">Save</CButton></CModalFooter></CModal>
-
+{/* --- MODAL: ADD MACHINE (FULL VERSION) --- */}
+      <CModal visible={showMachineModal} onClose={() => setShowMachineModal(false)}>
+        <CModalHeader><CModalTitle>Add New Machine</CModalTitle></CModalHeader>
+        <CModalBody>
+            <CForm>
+                <div className="mb-3">
+                    <CFormInput 
+                        label="Machine Name" 
+                        placeholder="e.g. Atellica 1" 
+                        value={machineForm.machine_name} 
+                        onChange={e => setMachineForm({...machineForm, machine_name: e.target.value})}
+                    />
+                </div>
+                <div className="mb-3">
+                    <CFormInput 
+                        label="IP Address" 
+                        placeholder="192.168.1.100" 
+                        value={machineForm.ip_address} 
+                        onChange={e => setMachineForm({...machineForm, ip_address: e.target.value})}
+                    />
+                </div>
+                <div className="mb-3">
+                    <CFormSelect 
+                        label="Protocol" 
+                        value={machineForm.protocol} 
+                        onChange={e => setMachineForm({...machineForm, protocol: e.target.value})}
+                    >
+                        <option value="ASTM">ASTM</option>
+                        <option value="HL7">HL7</option>
+                    </CFormSelect>
+                </div>
+                <div className="mb-3">
+                    <CFormSelect 
+                        label="Division" 
+                        value={machineForm.division} 
+                        onChange={e => setMachineForm({...machineForm, division: e.target.value})}
+                    >
+                        <option value="Hematology">Hematology</option>
+                        <option value="Biochemistry">Biochemistry</option>
+                        <option value="Immunology">Immunology</option>
+                    </CFormSelect>
+                </div>
+            </CForm>
+        </CModalBody>
+        <CModalFooter>
+            <CButton color="secondary" onClick={() => setShowMachineModal(false)}>Cancel</CButton>
+            <CButton color="primary" onClick={handleAddMachine}>Save Machine</CButton>
+        </CModalFooter>
+      </CModal>
+      
       {/* --- QC MODAL (NEW) --- */}
       <CModal visible={showQCModal} onClose={() => setShowQCModal(false)}>
         <CModalHeader><CModalTitle>Add QC Control</CModalTitle></CModalHeader>

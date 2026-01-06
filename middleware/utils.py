@@ -2,8 +2,7 @@ import os
 import time
 import logging
 from datetime import datetime
-from logging.handlers import RotatingFileHandler
-from database import cursor, db  # Imports from local middleware/database.py
+from database import cursor, db
 
 # ==========================
 # ASTM Constants
@@ -14,63 +13,73 @@ EOT = b'\x04'
 STX = b'\x02'
 ETX = b'\x03'
 CR = b'\x0D'
+LF = b'\x0A'
 
 # ==========================
-# Database Logging
+# Directories
 # ==========================
-def log_event(event_type, message):
-    """Logs significant events to the MySQL database."""
-    try:
-        # Reconnect if needed
-        if not db.is_connected():
-            db.reconnect()
-            
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {event_type}: {message}")
-        cursor.execute("""
-            INSERT INTO listener_log (event_time, event_type, message)
-            VALUES (%s, %s, %s)
-        """, (datetime.now(), event_type, str(message)))
-        db.commit()
-    except Exception as e:
-        print(f"!!! Failed to log event to DB: {e}")
-
-# ==========================
-# File Logging Setup
-# ==========================
-LOG_FOLDER = "logs"
+LOG_DIR = "logs"           # <--- Variable defined here
 RAW_FOLDER = "raw_frames"
 
-os.makedirs(LOG_FOLDER, exist_ok=True)
+os.makedirs(LOG_DIR, exist_ok=True)
 os.makedirs(RAW_FOLDER, exist_ok=True)
 
-def setup_logger():
-    logger = logging.getLogger("middleware_logger")
-    logger.setLevel(logging.DEBUG)
-
-    # Prevent adding duplicate handlers if function is called twice
-    if logger.hasHandlers():
-        return logger
-
-    # 1. File Handler (Rotates after 5MB)
-    file_handler = RotatingFileHandler(
-        os.path.join(LOG_FOLDER, "middleware.log"),
-        maxBytes=5*1024*1024,
-        backupCount=5,
-        encoding="utf-8"
-    )
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
-    logger.addHandler(file_handler)
-
-    # 2. Console Handler
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s"))
-    logger.addHandler(console_handler)
-
+# ==========================
+# Logging Setup
+# ==========================
+def setup_logger(name, filename):
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+    
+    # Prevent adding duplicate handlers
+    if not logger.handlers:
+        handler = logging.FileHandler(os.path.join(LOG_DIR, filename))
+        formatter = logging.Formatter('%(asctime)s - %(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        
+        # Add console handler for the main log only
+        if name == 'system':
+            console = logging.StreamHandler()
+            console.setFormatter(formatter)
+            logger.addHandler(console)
+            
     return logger
 
-log = setup_logger()
+# Specific Loggers
+log = setup_logger('system', 'middleware.log')
+result_log = setup_logger('results', 'results.log')
+error_log = setup_logger('errors', 'error.log')
+status_log = setup_logger('status', 'machine_status.log')
+qc_log = setup_logger('qc', 'qc.log')
+
+def log_event(category, message):
+    """
+    Logs to specific files based on category and optionally to DB.
+    """
+    # 1. File Logging
+    msg_str = str(message)
+    if category == 'result':
+        result_log.info(msg_str)
+    elif category == 'error':
+        error_log.error(msg_str)
+    elif category == 'status' or category in ['STARTUP', 'CONNECT', 'DISCONNECT']:
+        status_log.info(f"[{category}] {msg_str}")
+    elif category == 'qc':
+        qc_log.info(msg_str)
+    else:
+        log.info(f"[{category}] {msg_str}")
+
+    # 2. Database Logging
+    try:
+        if not db.is_connected():
+            db.reconnect()
+        cursor.execute("INSERT INTO listener_log (event_type, message) VALUES (%s, %s)", (category, msg_str))
+        db.commit()
+    except Exception as e:
+        # Avoid infinite recursion if DB log fails
+        if category != 'error':
+            error_log.error(f"DB Log Failed: {e}")
 
 # ==========================
 # Cleanup Functions
@@ -95,11 +104,13 @@ def cleanup_old_logs(days=30):
     """Delete log files older than `days`."""
     now = time.time()
     cutoff = now - (days * 86400)
-    if not os.path.exists(LOG_FOLDER):
+    
+    # FIXED: Using LOG_DIR instead of LOG_FOLDER
+    if not os.path.exists(LOG_DIR):
         return
 
-    for filename in os.listdir(LOG_FOLDER):
-        file_path = os.path.join(LOG_FOLDER, filename)
+    for filename in os.listdir(LOG_DIR):
+        file_path = os.path.join(LOG_DIR, filename)
         if os.path.isfile(file_path) and os.path.getmtime(file_path) < cutoff:
             try:
                 os.remove(file_path)

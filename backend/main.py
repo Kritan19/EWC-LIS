@@ -16,6 +16,7 @@ from routes.dashboard_routes import router as dashboard_router
 from routes.sample_routes import router as sample_router
 from routes.qc_routes import router as qc_router
 from routes.report_routes import router as report_router
+from routes.validation_routes import router as validation_router
 
 app = FastAPI(title="Atellica LIS API", version="1.0.0")
 
@@ -48,6 +49,7 @@ app.include_router(dashboard_router, prefix="/api/dashboard", tags=["Dashboard"]
 app.include_router(sample_router, prefix="/api/samples", tags=["Samples List"])
 app.include_router(qc_router, prefix="/api/qc", tags=["Quality Control"])
 app.include_router(report_router, prefix="/api/report", tags=["Reports"])
+app.include_router(validation_router, prefix="/api/samples", tags=["Validation Queue"])
 
 @app.get("/")
 def home():

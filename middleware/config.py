@@ -8,7 +8,7 @@ class Settings:
     DB_NAME = "lims_db" 
 
     # --- LISTENER CONFIG ---
-    LIS_HOST = "127.0.0.1"
+    LIS_HOST = "0.0.0.0"
     LIS_PORT = 5001     # Port for the Machine to connect
 
     # --- LOGGING ---

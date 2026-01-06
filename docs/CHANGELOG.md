@@ -16,4 +16,4 @@
 # To run the Program 
  - backend : python -m uvicorn main:app --reload --port 8000
  - frontend: npm run dev 
- - database :  Locak instances pswd:root
+ - database :  Local instances pswd:root
